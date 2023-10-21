@@ -4,7 +4,7 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 COPY ["GatewayControlIoT.csproj", "./"]
-RUN dotnet restore "GatewayControlIoT/GatewayControlIoT.csproj"
+RUN dotnet restore "GatewayControlIoT.csproj"
 COPY . .
 WORKDIR "/src/"
 RUN dotnet build "GatewayControlIoT.csproj" -c Release -o /app/build
