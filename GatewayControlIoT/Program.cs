@@ -1,4 +1,15 @@
+using System.Net;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Listen(IPAddress.Any, 44304, options =>
+    {
+        options.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+});
 
 // Add services to the container.
 
