@@ -19,7 +19,15 @@ public class GatewayController : ControllerBase
 		Devices.AddRange(new List<Device>(){
 			new Device{
 				name = "device1",
-				url = "https://localhost:7179"
+				url = "https://192.168.150.4:44356"
+			},
+			new Device{
+				name = "device2",
+				url = "https://192.168.150.5:44357"
+			},
+			new Device{
+				name = "device3",
+				url = "https://192.168.150.6:44358"
 			}
 		});
 	}
@@ -73,7 +81,7 @@ public class GatewayController : ControllerBase
 		
 		JsonContent content = JsonContent.Create(deviceData);
 		HttpClient client = new HttpClient();
-		var response = client.PostAsync("https://localhost:7149/Heads/PostDeviceData", content);
+		var response = client.PostAsync("https://192.168.150.2:44323/Heads/PostDeviceData", content);
             
 		_logger.LogInformation($"{DateTime.UtcNow} | POST data to main device with {deviceData.name}. {response.Result.StatusCode}");
 
