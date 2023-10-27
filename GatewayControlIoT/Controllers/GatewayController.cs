@@ -38,7 +38,10 @@ public class GatewayController : ControllerBase
 	[HttpGet(Name = "GetDeviceStatus")]
 	public async Task<IActionResult> GetStatus(string deviceName)
 	{
-		HttpClient client = new HttpClient();
+        HttpClientHandler clientHandler = new HttpClientHandler();
+        clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
+        
+		HttpClient client = new HttpClient(clientHandler);
 
 
 		var device = Devices.FirstOrDefault(i => i.name == deviceName);
@@ -80,7 +83,11 @@ public class GatewayController : ControllerBase
 		//_logger.LogInformation($"{DateTime.UtcNow} | {deviceData.name}: {deviceData.data}");
 		
 		JsonContent content = JsonContent.Create(deviceData);
-		HttpClient client = new HttpClient();
+		
+		HttpClientHandler clientHandler = new HttpClientHandler();
+		clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
+		
+		HttpClient client = new HttpClient(clientHandler);
 		var response = client.PostAsync("https://192.168.150.2:44323/Heads/PostDeviceData", content);
             
 		_logger.LogInformation($"{DateTime.UtcNow} | POST data to main device with {deviceData.name}. {response.Result.StatusCode}");
@@ -93,7 +100,9 @@ public class GatewayController : ControllerBase
 	{
 		foreach (var device in Devices)
 		{
-			HttpClient client = new HttpClient();
+			HttpClientHandler clientHandler = new HttpClientHandler();
+			clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
+			HttpClient client = new HttpClient(clientHandler);
 			var response = client.PostAsync($"{device.url}/DeviceInfo/PostChangeStatus?value=1", null);
 		}
 		
@@ -106,7 +115,9 @@ public class GatewayController : ControllerBase
 	{
 		foreach (var device in Devices)
 		{
-			HttpClient client = new HttpClient();
+			HttpClientHandler clientHandler = new HttpClientHandler();
+			clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
+			HttpClient client = new HttpClient(clientHandler);
 			var response = client.PostAsync($"{device.url}/DeviceInfo/PostChangeStatus?value=0", null);
 		}
 		
@@ -123,7 +134,7 @@ public class GatewayController : ControllerBase
 	private class DeviceData
 	{
 		public string name { get; set; }
-		public string data { get; set; }
+		public byte[] data { get; set; }
 	}
     
 	private class DeviceStatus
