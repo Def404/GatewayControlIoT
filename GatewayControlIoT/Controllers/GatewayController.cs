@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using ExecutingDevice;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GateWay.Controllers;
@@ -48,27 +49,52 @@ public class GatewayController : ControllerBase
 
 		if (device == null)
 		{
-			_logger.LogInformation($"{DateTime.UtcNow} | It was not possible to get the {deviceName} status");
+			//_logger.LogInformation($"{DateTime.UtcNow} | It was not possible to get the {deviceName} status");
 
-			return NotFound();
+			return NotFound("Device not found");
 		}
-			
-		
+        
 		var response = await client.GetAsync($"{device.url}/DeviceInfo/GetStatus");
 		if (response.StatusCode == HttpStatusCode.OK)
 		{
 			var content = await response.Content.ReadAsStringAsync();
 			var deviceStatus = JsonSerializer.Deserialize<DeviceStatus>(content);
         
-			_logger.LogInformation($"{DateTime.UtcNow} | {deviceStatus.deviceName} status: {deviceStatus.status}");
+			//_logger.LogInformation($"{DateTime.UtcNow} | {deviceStatus.deviceName} status: {deviceStatus.status}");
 			return new JsonResult(new {deviceStatus.deviceName, deviceStatus.status});
 		}
 		else
 		{
-			_logger.LogInformation($"{DateTime.UtcNow} | It was not possible to get the {deviceName} status");
-			return NotFound();
+			//_logger.LogInformation($"{DateTime.UtcNow} | It was not possible to get the {deviceName} status");
+			return NotFound(response.StatusCode);
 		}
+	}
+	
+	[HttpGet(Name = "GetAllDeviceStatus")]
+	public async Task<IActionResult> GetAllDeviceStatus()
+	{
+		HttpClientHandler clientHandler = new HttpClientHandler();
+		clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
         
+		HttpClient client = new HttpClient(clientHandler);
+
+		List<DeviceStatus> resultAllDevices = new List<DeviceStatus>();
+
+		foreach (var device in Devices)
+		{
+			var response = await client.GetAsync($"{device.url}/DeviceInfo/GetStatus");
+			if (response.StatusCode == HttpStatusCode.OK)
+			{
+				var content = await response.Content.ReadAsStringAsync();
+				var deviceStatus = JsonSerializer.Deserialize<DeviceStatus>(content);
+				resultAllDevices.Add(deviceStatus);
+			}
+		}
+		
+        if(resultAllDevices.Count == 0)
+	        return NotFound("Devices not found");
+
+        return new JsonResult(new { resultAllDevices });
 	}
 	
 	[HttpPost(Name ="PostDeviceData")]
@@ -92,6 +118,57 @@ public class GatewayController : ControllerBase
             
 		_logger.LogInformation($"{DateTime.UtcNow} | POST data to main device with {deviceData.name}. {response.Result.StatusCode}");
 
+		return Ok();
+	}
+	
+	[HttpPost(Name = "PostChangeStatus")]
+	public async Task<IActionResult> PostChangeStatus(string deviceName, int value)
+	{
+		HttpClientHandler clientHandler = new HttpClientHandler();
+		clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
+        
+		HttpClient client = new HttpClient(clientHandler);
+		
+		string newStatus;
+		string oldStatus;
+		
+		var device = Devices.FirstOrDefault(i => i.name == deviceName);
+
+		if (device == null)
+		{
+			return NotFound("Device not found");
+		}
+		
+		var response = await client.GetAsync($"{device.url}/DeviceInfo/GetStatus");
+		if (response.StatusCode == HttpStatusCode.OK)
+		{
+			var content = await response.Content.ReadAsStringAsync();
+			var deviceStatus = JsonSerializer.Deserialize<DeviceStatus>(content);
+			oldStatus = deviceStatus.status;
+		}
+		else
+		{
+			//_logger.LogInformation($"{DateTime.UtcNow} | It was not possible to get the {deviceName} status");
+			return NotFound(response.StatusCode);
+		}
+        
+		switch (value)
+		{
+			case 0:
+				newStatus = Status.STOP;
+				break;
+			case 1:
+				newStatus = Status.RUN;
+				break;
+			default:
+				return NotFound("Not is status");
+				break;
+		}
+		
+		if(newStatus.Equals(oldStatus))
+			return NotFound("Old status equals new status");
+		
+		var responsePost = await client.PostAsync($"{device.url}/DeviceInfo/PostChangeStatus?value={value}", null);
 		return Ok();
 	}
 
